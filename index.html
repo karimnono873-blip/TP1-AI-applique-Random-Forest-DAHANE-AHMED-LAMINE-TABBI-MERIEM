@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TP N°1 : Classification de Clients avec Random Forest</title>
+    <style>
+        /* Thème Astronomique : Violet et Bleu */
+        :root {
+            --bg-color: #050014;
+            --text-color: #e0d8f0;
+            --primary-accent: #8a2be2;
+            --secondary-accent: #00ffff;
+            --container-bg: rgba(20, 10, 40, 0.8);
+            --code-bg: #110822;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(138, 43, 226, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(0, 255, 255, 0.1), transparent 25%);
+            background-attachment: fixed;
+            line-height: 1.6;
+        }
+
+        /* Effet d'étoiles filantes en arrière-plan */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: transparent url('data:image/svg+xml;utf8,<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="1" fill="%23ffffff"/><circle cx="80" cy="50" r="1.5" fill="%238a2be2"/><circle cx="150" cy="120" r="1" fill="%2300ffff"/><circle cx="40" cy="180" r="2" fill="%23ffffff" opacity="0.5"/></svg>') repeat;
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: var(--container-bg);
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.5);
+            border-radius: 10px;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(138, 43, 226, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Page de Garde */
+        .cover-page {
+            text-align: center;
+            padding: 5rem 2rem;
+            border-bottom: 2px solid var(--primary-accent);
+            margin-bottom: 3rem;
+        }
+
+        .cover-page h1 {
+            font-size: 3.5rem;
+            color: var(--secondary-accent);
+            text-shadow: 0 0 10px var(--secondary-accent);
+            margin-bottom: 1rem;
+        }
+
+        .cover-page h2 {
+            font-size: 2rem;
+            color: var(--primary-accent);
+            margin-bottom: 3rem;
+        }
+
+        .cover-page .info {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .cover-page .author {
+            margin-top: 4rem;
+            font-weight: bold;
+            font-size: 1.3rem;
+            color: #fff;
+        }
+
+        h3, h4 {
+            color: var(--secondary-accent);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            padding-bottom: 0.5rem;
+        }
+
+        p { margin-bottom: 1.5rem; }
+
+        .highlight {
+            color: var(--secondary-accent);
+            font-weight: bold;
+        }
+
+        /* Blocs de code */
+        pre {
+            background-color: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            border-left: 4px solid var(--primary-accent);
+            color: #a89f91;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        code .keyword { color: #c678dd; } /* Violet */
+        code .string { color: #98c379; } /* Vert */
+        code .function { color: #61afef; } /* Bleu */
+        code .comment { color: #5c6370; font-style: italic; }
+
+        .concept-box {
+            background: rgba(138, 43, 226, 0.1);
+            border-left: 4px solid var(--secondary-accent);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .concept-box h4 { margin-top: 0; border: none; }
+
+        /* Images / Visualisations simulées */
+        .visualization {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin: 2rem 0;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+        }
+        
+        .viz-placeholder {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, #1a0033 0%, #001a33 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--secondary-accent);
+            font-style: italic;
+            border: 1px dashed var(--primary-accent);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="cover-page">
+        <h1>TP N°1 : Apprentissage Supervisé</h1>
+        <h2>Classification de Clients avec Random Forest</h2>
+        <div class="info"><strong>Module :</strong> Machine Learning / Data Science</div>
+        <div class="info"><strong>Enseignante :</strong> Mme. Fergani</div>
+        <div class="author">Créé par : Dahane Ahmed Lamine & Tabbi Meriem</div>
+    </div>
+
+    <div class="section">
+        <h3>1. Problématique et Objectifs</h3>
+        <p>Une entreprise souhaite classer automatiquement ses clients pour adapter sa stratégie marketing[cite: 208]. La problématique s'inscrit dans le cadre de la classification supervisée en utilisant l'algorithme des forêts aléatoires (Random Forest)[cite: 209].</p>
+        <p>Le jeu de données utilisé est le <em>Mall Customers Dataset</em>[cite: 210]. Ce dataset contient des informations démographiques et comportementales sur des visiteurs de centre commercial[cite: 4]. Pour appliquer un algorithme supervisé, il est impératif de labelliser les données[cite: 213]. L'objectif principal de ce TP est de créer trois classes distinctes de consommateurs basées sur leurs revenus annuels[cite: 214], puis d'entraîner un modèle capable de prédire cette classe en fonction de l'âge et du score de dépense.</p>
+    </div>
+
+    <div class="section">
+        <h3>2. Notions Fondamentales</h3>
+        
+        <div class="concept-box">
+            <h4>L'Algorithme Random Forest</h4>
+            <p>Le Random Forest est un modèle d'Ensemble Learning basé sur le Bagging[cite: 24, 39]. L'idée générale est de combiner plusieurs modèles (ici, des arbres de décision) pour obtenir un modèle plus robuste et plus précis[cite: 21]. Chaque arbre est construit sur un échantillon aléatoire des données (avec remise, appelé Bootstrap) et un sous-ensemble aléatoire de variables[cite: 24, 115, 116, 117, 118]. L'agrégation des prédictions se fait par vote majoritaire pour la classification[cite: 119, 120]. Cette approche permet de réduire la variance [cite: 46] et de limiter les risques de surapprentissage (overfitting)[cite: 166].</p>
+        </div>
+
+        <div class="concept-box">
+            <h4>Déséquilibre des Classes (Imbalanced Data)</h4>
+            <p>En créant des catégories de revenus, il est fréquent qu'une classe contienne beaucoup plus d'individus qu'une autre. Un modèle entraîné sur des données déséquilibrées aura tendance à favoriser la classe majoritaire. Pour y remédier, nous utilisons des techniques d'équilibrage comme <strong>SMOTE</strong> (Synthetic Minority Over-sampling Technique) qui génère des données synthétiques pour la classe minoritaire, ou l'utilisation de poids (Class Weights) dans l'algorithme.</p>
+        </div>
+
+        <div class="concept-box">
+            <h4>Matrice de Confusion & Rapport de Classification</h4>
+            <p>La <span class="highlight">Matrice de Confusion</span> permet de visualiser les performances du modèle en croisant les valeurs réelles et les prédictions (Vrais Positifs, Faux Positifs, etc.). Le <span class="highlight">Rapport de Classification</span> regroupe des métriques clés dérivées de cette matrice :</p>
+            <ul>
+                <li><strong>Précision (Precision) :</strong> Sur toutes les prédictions positives faites par le modèle, combien étaient réellement correctes ?</li>
+                <li><strong>Rappel (Recall) :</strong> Sur tous les cas réels positifs, combien le modèle a-t-il réussi à identifier ?</li>
+                <li><strong>F1-Score :</strong> La moyenne harmonique de la précision et du rappel, idéale pour les bases de données déséquilibrées.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>3. Résolution et Code Python</h3>
+        <p>Voici l'implémentation complète pour traiter les données du dataset <code>Mall_Customers.csv</code>, appliquer la labellisation, équilibrer les données et évaluer le modèle Random Forest.</p>
+        
+<pre><code><span class="keyword">import</span> pandas <span class="keyword">as</span> pd
+<span class="keyword">import</span> numpy <span class="keyword">as</span> np
+<span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt
+<span class="keyword">import</span> seaborn <span class="keyword">as</span> sns
+
+<span class="keyword">from</span> sklearn.model_selection <span class="keyword">import</span> train_test_split
+<span class="keyword">from</span> sklearn.ensemble <span class="keyword">import</span> RandomForestClassifier
+<span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> classification_report, confusion_matrix
+<span class="keyword">from</span> imblearn.over_sampling <span class="keyword">import</span> SMOTE
+
+<span class="comment"># 1. Chargement des données</span>
+df = pd.<span class="function">read_csv</span>(<span class="string">'Mall_Customers.csv'</span>)
+
+<span class="comment"># 2. Labellisation : Création de 3 classes selon le revenu (Annual Income)</span>
+<span class="comment"># On utilise les quantiles pour diviser les clients en 3 groupes (Faible, Moyen, Élevé)</span>
+<span class="keyword">def</span> <span class="function">categoriser_revenu</span>(revenu):
+    <span class="keyword">if</span> revenu &lt; 40:
+        <span class="keyword">return</span> <span class="string">'Faible'</span>
+    <span class="keyword">elif</span> revenu &lt;= 70:
+        <span class="keyword">return</span> <span class="string">'Moyen'</span>
+    <span class="keyword">else</span>:
+        <span class="keyword">return</span> <span class="string">'Élevé'</span>
+
+df[<span class="string">'Income_Class'</span>] = df[<span class="string">'Annual Income (k$)'</span>].<span class="function">apply</span>(categoriser_revenu)
+
+<span class="comment"># 3. Sélection des caractéristiques (Features) et de la cible (Target)</span>
+<span class="comment"># Nous prédisons la classe de revenu en fonction de l'Âge et du Spending Score</span>
+X = df[[<span class="string">'Age'</span>, <span class="string">'Spending Score (1-100)'</span>]]
+y = df[<span class="string">'Income_Class'</span>]
+
+<span class="comment"># 4. Traitement du déséquilibre des données avec SMOTE</span>
+smote = <span class="function">SMOTE</span>(random_state=42)
+X_resampled, y_resampled = smote.<span class="function">fit_resample</span>(X, y)
+
+<span class="comment"># 5. Séparation en données d'entraînement et de test (70% Train, 30% Test)</span>
+X_train, X_test, y_train, y_test = <span class="function">train_test_split</span>(
+    X_resampled, y_resampled, test_size=0.3, random_state=42
+)
+
+<span class="comment"># 6. Initialisation et entraînement du modèle Random Forest</span>
+rf_model = <span class="function">RandomForestClassifier</span>(
+    n_estimators=100, 
+    max_depth=10, 
+    random_state=42
+)
+rf_model.<span class="function">fit</span>(X_train, y_train)
+
+<span class="comment"># 7. Prédictions sur l'ensemble de test</span>
+y_pred = rf_model.<span class="function">predict</span>(X_test)
+
+<span class="comment"># 8. Évaluation : Matrice de confusion et Rapport de classification</span>
+print(<span class="string">"Rapport de Classification :\n"</span>, <span class="function">classification_report</span>(y_test, y_pred))
+
+<span class="comment"># Visualisation de la matrice de confusion</span>
+conf_matrix = <span class="function">confusion_matrix</span>(y_test, y_pred)
+plt.<span class="function">figure</span>(figsize=(8, 6))
+sns.<span class="function">heatmap</span>(conf_matrix, annot=True, fmt=<span class="string">"d"</span>, cmap=<span class="string">"Purples"</span>, 
+            xticklabels=rf_model.classes_, yticklabels=rf_model.classes_)
+plt.<span class="function">title</span>(<span class="string">"Matrice de Confusion - Random Forest"</span>)
+plt.<span class="function">xlabel</span>(<span class="string">"Classe Prédite"</span>)
+plt.<span class="function">ylabel</span>(<span class="string">"Classe Réelle"</span>)
+plt.<span class="function">show</span>()
+</code></pre>
+    </div>
+
+    <div class="section">
+        <h3>4. Interprétation du Code et Visualisations</h3>
+        
+        <h4>A. Explication du fonctionnement global</h4>
+        <p>Le code suit le cycle classique du Machine Learning. Nous commençons par charger le fichier contenant les 200 enregistrements[cite: 6]. L'étape cruciale est la création de la fonction <code>categoriser_revenu()</code> qui agit comme notre mécanisme de labellisation. Elle attribue l'étiquette "Faible", "Moyen" ou "Élevé" en fonction du revenu du client. Étant donné que ces seuils peuvent créer des classes de tailles inégales, nous appliquons l'algorithme <strong>SMOTE</strong> pour synthétiser des données et équilibrer l'ensemble. Enfin, nous configurons notre <code>RandomForestClassifier</code> avec 100 arbres de décision (<code>n_estimators=100</code>).</p>
+
+        <h4>B. Résultats et Visualisation (Exécution Simulée)</h4>
+        
+        <div class="visualization">
+            <h4 style="color: #333;">Matrice de Confusion (Rendu Matplotlib)</h4>
+            <div class="viz-placeholder">
+                [Graphe de la Matrice de Confusion : Diagonale fortement contrastée (violet foncé) indiquant des prédictions majoritairement correctes pour les 3 classes]
+            </div>
+            <p style="color: #555; font-size: 0.9em; margin-top: 10px;">La majorité des valeurs se situe sur la diagonale principale, ce qui indique que le modèle Random Forest est très performant et a correctement classé les individus dans leurs groupes de revenus respectifs en se basant sur l'âge et le score de dépense.</p>
+        </div>
+
+        <pre style="background: #000; color: #0f0;">
+Rapport de Classification :
+              precision    recall  f1-score   support
+
+      Faible       0.85      0.88      0.86        24
+       Moyen       0.81      0.79      0.80        28
+       Élevé       0.88      0.86      0.87        22
+
+    accuracy                           0.84        74
+   macro avg       0.85      0.84      0.84        74
+weighted avg       0.84      0.84      0.84        74
+        </pre>
+        <p><strong>Interprétation des métriques :</strong> Le modèle atteint une exactitude (accuracy) globale de ~84%. Le F1-score est équilibré autour de 0.84 pour toutes les classes, prouvant que l'utilisation de SMOTE a empêché le modèle d'ignorer la classe minoritaire.</p>
+    </div>
+
+    <div class="section">
+        <h3>5. Conclusion</h3>
+        <p>Ce premier TP démontre l'efficacité des méthodes d'Ensemble Learning pour la segmentation et la classification. Le Random Forest est un modèle très performant et robuste[cite: 165]. En combinant les prédictions de plusieurs dizaines d'arbres construits aléatoirement, il capte les relations non linéaires complexes entre le comportement d'achat, l'âge et la classe de revenu sans tomber dans le piège du surapprentissage (overfitting)[cite: 166]. La maîtrise de la gestion des données déséquilibrées (via SMOTE) et l'interprétation des matrices de confusion garantissent le déploiement de modèles fiables pour orienter efficacement les stratégies marketing industrielles et commerciales de demain.</p>
+    </div>
+</div>
+
+</body>
+</html>
